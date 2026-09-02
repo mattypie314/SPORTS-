@@ -11,6 +11,10 @@ def test_parser_edge_and_scan():
     assert scan.command == "scan"
     markets = parser.parse_args(["markets", "--series", "KXMLBGAME"])
     assert markets.series == "KXMLBGAME"
+    paper = parser.parse_args(["paper", "--status"])
+    assert paper.command == "paper"
+    live = parser.parse_args(["live", "--ticker", "X", "--price", "0.55", "--dry-run"])
+    assert live.dry_run
 
 
 def test_429_retries(monkeypatch):

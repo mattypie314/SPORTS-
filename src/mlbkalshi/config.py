@@ -32,6 +32,8 @@ class Settings:
     kalshi_key_id: str
     kalshi_private_key_path: str
     books_path: str
+    data_dir: str
+    kalshi_env: str
 
     @classmethod
     def from_env(cls, bankroll: float | None = None) -> Settings:
@@ -42,4 +44,14 @@ class Settings:
             kalshi_key_id=os.getenv("KALSHI_API_KEY_ID", ""),
             kalshi_private_key_path=os.getenv("KALSHI_PRIVATE_KEY_PATH", ""),
             books_path=os.getenv("BOOK_LINES_PATH", ""),
+            data_dir=os.getenv("MLBKALSHI_DATA", "data"),
+            kalshi_env=os.getenv("KALSHI_ENV", "demo"),
         )
+
+    @property
+    def has_keys(self) -> bool:
+        return bool(self.kalshi_key_id and self.kalshi_private_key_path)
+
+    @property
+    def live_allowed(self) -> bool:
+        return self.live_trading and self.has_keys

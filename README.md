@@ -1,8 +1,19 @@
 # Kalshi MLB Bot
 
-Paper-first [Kalshi](https://kalshi.com) bot for **MLB game winners only** (`KXMLBGAME`). It prints today’s moneylines, flags edges, and can paper-trade them. Real-money orders stay off unless you explicitly enable them.
+`mlbkalshi` is the books-first scanner: Kalshi MLB prices vs **no-vig sportsbook consensus**, then Kelly size. Paper-trade by default. The older `sportsbot` dashboard is still here for the live board.
 
-Other sports are out of scope for this first version.
+This is not financial advice. Contracts can expire at $0.
+
+```bash
+python -m mlbkalshi markets --series KXMLBGAME
+python -m mlbkalshi edge --book-odds -150 +130 --kalshi 0.55 --side yes --bankroll 100
+python -m mlbkalshi scan --bankroll 100
+python -m pytest -q
+```
+
+`scan` works without `ODDS_API_KEY` (degraded: standings `model_fair`, every row `low_confidence`, FAIL unless net EV ≥ 10%). Drop book lines with `BOOK_LINES_PATH` or `--books path.json`. Live Create Order stays off unless `LIVE_TRADING=1` and keys exist.
+
+See `AGENTS.md` and `docs/ARCHITECTURE.md`.
 
 ## What it does
 
