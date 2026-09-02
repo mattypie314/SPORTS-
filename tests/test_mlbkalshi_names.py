@@ -38,3 +38,18 @@ def test_event_title_vs():
     assert codes_from_event_title("Atlanta vs Washington") == ("ATL", "WSH")
     assert codes_from_event_title("A's vs Texas") == ("ATH", "TEX")
     assert codes_from_event_title("New York Y vs Los Angeles A") == ("NYY", "LAA")
+    assert codes_from_event_title("Baltimore vs Colorado: Spread") == ("BAL", "COL")
+    assert codes_from_event_title("New York M vs Tampa Bay: First Inning Run") == ("NYM", "TB")
+
+
+def test_kalshi_date_and_ticker_teams():
+    from datetime import date
+
+    from mlbkalshi.names import event_date_from_ticker, team_code_from_text, teams_from_ticker
+
+    assert event_date_from_ticker("KXMLBGAME-26SEP021305ATLWSH-ATL") == date(2026, 9, 2)
+    assert teams_from_ticker("KXMLBGAME-26SEP021305ATLWSH-ATL") == ("ATL", "WSH")
+    assert teams_from_ticker("KXMLBGAME-26SEP022010CWSHOU-HOU") == ("CWS", "HOU")
+    assert teams_from_ticker("KXMLBGAME-26SEP022138NYYLAA-NYY") == ("NYY", "LAA")
+    assert team_code_from_text("Colorado wins by over 3.5 runs") == "COL"
+    assert team_code_from_text("Tampa Bay -2.5 first 5 innings") == "TB"

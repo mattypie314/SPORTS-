@@ -38,11 +38,26 @@ def format_miss(result: EdgeResult, *, team: str) -> str:
     )
 
 
+def format_rank_table(rows: list[tuple[EdgeResult, str, str]]) -> str:
+    if not rows:
+        return "ranked: (empty)"
+    lines = [f"ranked: {len(rows)} evaluated  (PASS only boxed below)"]
+    for result, team, _why in rows[:12]:
+        lines.append(
+            f"  {result.verdict:<4} {team:<16} {result.side.upper()} @ {result.price:.2f}  "
+            f"netEV {result.net_ev:+.1%}  {result.source_of_fair}"
+        )
+    return "\n".join(lines)
+
+
 def print_slate(rows: list[tuple[EdgeResult, str, str]]) -> None:
     """rows: (result, team, why)."""
-    passes = [(result, team, why) for result, team, why in rows if result.passed]
-    misses = [(result, team, why) for result, team, why in rows if not result.passed]
-    misses.sort(key=lambda item: item[0].net_ev, reverse=True)
+    ranked = sorted(rows, key=lambda item: item[0].net_ev, reverse=True)
+    if ranked:
+        print(format_rank_table(ranked))
+        print()
+    passes = [(result, team, why) for result, team, why in ranked if result.passed]
+    misses = [(result, team, why) for result, team, why in ranked if not result.passed]
     if passes:
         for result, team, why in passes:
             print(format_pass(result, team=team, why=why))

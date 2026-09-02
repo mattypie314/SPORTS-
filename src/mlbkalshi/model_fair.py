@@ -1,4 +1,4 @@
-"""Standings / pythag fallback. Tagged low_confidence. Never the live trigger."""
+"""Standings / pythag / staff-ERA fallback. Tagged low_confidence. Never the live trigger."""
 
 from __future__ import annotations
 
@@ -17,6 +17,7 @@ class ModelFair:
     code: str
     win_pct: float
     pythag: float | None
+    era: float | None = None
     source: str = "standings"
 
 
@@ -47,11 +48,24 @@ def load_model_fairs() -> dict[str, ModelFair]:
             pythag = None
             if scored > 0 and allowed > 0:
                 pythag = (scored**2) / (scored**2 + allowed**2)
+            era = rec.get("era")
+            try:
+                era_f = float(era) if era not in (None, "") else None
+            except (TypeError, ValueError):
+                era_f = None
+            src = "standings"
+            if pythag is not None and era_f is not None:
+                src = "standings+pythag+era"
+            elif pythag is not None:
+                src = "standings+pythag"
+            elif era_f is not None:
+                src = "standings+era"
             out[code] = ModelFair(
                 code=code,
                 win_pct=float(rec.get("winningPercentage") or 0),
                 pythag=pythag,
-                source="standings+pythag" if pythag is not None else "standings",
+                era=era_f,
+                source=src,
             )
     return out
 

@@ -175,9 +175,84 @@ def parse_ticker(ticker: str) -> ParsedTicker:
     return ParsedTicker(series=series, date=date, outcome=outcome, raw=raw)
 
 
+_MONTHS = {
+    "JAN": 1,
+    "FEB": 2,
+    "MAR": 3,
+    "APR": 4,
+    "MAY": 5,
+    "JUN": 6,
+    "JUL": 7,
+    "AUG": 8,
+    "SEP": 9,
+    "OCT": 10,
+    "NOV": 11,
+    "DEC": 12,
+}
+
+
+def parse_kalshi_date(token: str):
+    """Convert a Kalshi date token like 26SEP02 to datetime.date."""
+    from datetime import date
+
+    raw = (token or "").strip().upper()
+    match = re.fullmatch(r"(\d{2})([A-Z]{3})(\d{2})", raw)
+    if not match:
+        return None
+    year = 2000 + int(match.group(1))
+    month = _MONTHS.get(match.group(2))
+    day = int(match.group(3))
+    if month is None:
+        return None
+    try:
+        return date(year, month, day)
+    except ValueError:
+        return None
+
+
+def event_date_from_ticker(ticker: str):
+    return parse_kalshi_date(parse_ticker(ticker).date or "")
+
+
+def team_code_from_text(text: str) -> str | None:
+    """Resolve a team from a full Kalshi title ('Colorado wins by over 1.5')."""
+    direct = team_code(text)
+    if direct:
+        return direct
+    words = normalize(text).split()
+    for n in range(min(4, len(words)), 0, -1):
+        hit = team_code(" ".join(words[:n]))
+        if hit:
+            return hit
+    return None
+
+
 def codes_from_event_title(title: str) -> tuple[str | None, str | None]:
-    """Parse 'Away vs Home' style Kalshi titles."""
-    parts = re.split(r"\s+vs\.?\s+", title, maxsplit=1, flags=re.IGNORECASE)
+    """Parse 'Away vs Home' style Kalshi titles, including ': Spread' suffixes."""
+    cleaned = re.sub(r":\s*.+$", "", title or "").strip()
+    parts = re.split(r"\s+vs\.?\s+", cleaned, maxsplit=1, flags=re.IGNORECASE)
     if len(parts) != 2:
         return None, None
     return team_code(parts[0]), team_code(parts[1])
+
+
+def teams_from_ticker(ticker: str) -> tuple[str | None, str | None]:
+    """Read away/home codes from a Kalshi ticker body (ATLWSH, 1305ATLWSH)."""
+    parsed = parse_ticker(ticker)
+    body = parsed.raw
+    match = _TICKER_RE.match(body)
+    if not match:
+        return None, None
+    rest = match.group("body")
+    if parsed.outcome and rest.endswith(f"-{parsed.outcome}"):
+        rest = rest[: -(len(parsed.outcome) + 1)]
+    rest = re.sub(r"^\d{2}[A-Z]{3}\d{2}", "", rest, flags=re.IGNORECASE)
+    rest = re.sub(r"^\d{4}", "", rest)
+    rest = rest.upper()
+    codes = sorted(TEAMS, key=len, reverse=True)
+    for away in codes:
+        if rest.startswith(away):
+            home = rest[len(away) :]
+            if home in TEAMS:
+                return away, home
+    return None, None

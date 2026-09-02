@@ -76,6 +76,13 @@ def test_skip_heavy_favorite_without_ten():
     assert "80¢" in result.reason or "favorite" in result.reason
 
 
+def test_extreme_needs_deep_book():
+    result = evaluate(fair=0.95, kalshi_yes=0.82, side="yes", bankroll=100, deep=False)
+    assert not result.passed
+    deep = evaluate(fair=0.95, kalshi_yes=0.82, side="yes", bankroll=100, deep=True)
+    assert deep.passed
+
+
 def test_low_confidence_extreme_price_always_fails():
     result = evaluate(
         fair=0.55,

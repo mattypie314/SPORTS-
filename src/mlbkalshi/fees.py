@@ -38,6 +38,7 @@ class EdgeResult:
     reason: str
     source_of_fair: str = "book"
     disagree_pts: float = 0.0
+    deep: bool = True
     extras: dict = field(default_factory=dict)
 
     @property
@@ -92,17 +93,18 @@ def ev_gate(
     spread: float | None,
     disagree_pts: float,
     low_confidence: bool,
+    deep: bool = True,
 ) -> tuple[bool, str]:
     extreme = price >= FAVORITE_CUTOFF or price <= LONGSHOT_CUTOFF
-    if extreme and low_confidence:
+    if extreme and (low_confidence or not deep):
         return False, "skip 80¢+ / 15¢ without a deep book"
     if low_confidence:
         if net >= LOW_CONF_EV:
             return True, "low_confidence but net EV ≥ 10%"
         return False, "low_confidence: need net EV ≥ 10%"
     if extreme:
-        if net >= EXTREME_EV:
-            return True, "extreme price but net EV ≥ 10%"
+        if net >= EXTREME_EV and deep:
+            return True, "extreme price but net EV ≥ 10% and book is deep"
         return False, "skip 80¢+ favorite / 15¢ longshot unless net EV ≥ 10%"
     if disagree_pts > 4.0:
         if net >= 0.08:
@@ -127,6 +129,7 @@ def evaluate(
     disagree_pts: float = 0.0,
     source_of_fair: str = "book",
     low_confidence: bool = False,
+    deep: bool = True,
 ) -> EdgeResult:
     side = side.lower()
     if side not in {"yes", "no"}:
@@ -146,6 +149,7 @@ def evaluate(
         spread=spread,
         disagree_pts=disagree_pts,
         low_confidence=low_confidence,
+        deep=deep,
     )
     sized = size_trade(used_fair, price, bankroll, maker=maker)
     if passed and sized.contracts <= 0:
@@ -164,4 +168,5 @@ def evaluate(
         reason=reason,
         source_of_fair=source_of_fair,
         disagree_pts=disagree_pts,
+        deep=deep,
     )
