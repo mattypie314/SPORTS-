@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kalshi Sports Bot</title>
+  <style>
+    :root {
+      --bg: #07090d;
+      --panel: #10151d;
+      --line: #1e2733;
+      --text: #e8eef6;
+      --muted: #8b97a8;
+      --green: #3ee08f;
+      --red: #ff6b6b;
+      --gold: #f5c14a;
+      --blue: #6aa7ff;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--text); font-family: "IBM Plex Sans", "Segoe UI", sans-serif; }
+    header {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      padding: 18px 22px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: #07090de6; backdrop-filter: blur(8px); z-index: 2;
+    }
+    h1 { margin: 0; font-size: 20px; letter-spacing: 0.08em; text-transform: uppercase; }
+    h1 span { color: var(--gold); }
+    .meta { color: var(--muted); font-size: 13px; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    button, .chip {
+      background: var(--panel); color: var(--text); border: 1px solid var(--line);
+      border-radius: 999px; padding: 8px 14px; cursor: pointer; font: inherit;
+    }
+    button.primary { background: #16301f; border-color: #245c38; color: var(--green); }
+    button:disabled { opacity: 0.5; cursor: wait; }
+    .chip.active { border-color: var(--gold); color: var(--gold); }
+    main { display: grid; grid-template-columns: 1.6fr 0.9fr; gap: 18px; padding: 18px; }
+    @media (max-width: 960px) { main { grid-template-columns: 1fr; } }
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; }
+    .panel h2 { margin: 0 0 12px; font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+    .games { display: grid; gap: 10px; }
+    .game { border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: #0c1118; }
+    .game-top { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+    .legs { display: grid; gap: 8px; }
+    .leg { display: grid; grid-template-columns: 1fr auto auto auto; gap: 10px; align-items: center; }
+    .team { font-weight: 650; }
+    .px { font-variant-numeric: tabular-nums; }
+    .ask { color: var(--green); }
+    .bid { color: var(--blue); }
+    .signal { border-left: 3px solid var(--gold); padding: 10px 12px; margin-bottom: 10px; background: #141a22; border-radius: 8px; }
+    .signal.arb_buy, .signal.arb_sell { border-left-color: var(--green); }
+    .signal.wide_spread { border-left-color: var(--red); }
+    .signal .kind { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+    .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+    .stat { background: #0c1118; border-radius: 10px; padding: 10px; }
+    .stat b { display: block; font-size: 18px; }
+    .stat span { color: var(--muted); font-size: 12px; }
+    .empty { color: var(--muted); padding: 20px 0; }
+    .fill { font-size: 13px; color: var(--muted); border-bottom: 1px solid var(--line); padding: 8px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Kalshi <span>Sports Bot</span></h1>
+      <div class="meta" id="meta">Loading live board…</div>
+    </div>
+    <div class="actions">
+      <button id="refresh">Refresh</button>
+      <button id="trade" class="primary">Paper trade signals</button>
+    </div>
+  </header>
+  <main>
+    <section class="panel">
+      <h2>Board</h2>
+      <div class="actions" id="leagues" style="margin-bottom:14px"></div>
+      <div class="games" id="games"></div>
+    </section>
+    <aside>
+      <section class="panel">
+        <h2>Paper book</h2>
+        <div class="status-grid" id="status"></div>
+        <div id="fills"></div>
+      </section>
+      <section class="panel" style="margin-top:18px">
+        <h2>Signals</h2>
+        <div id="signals"></div>
+      </section>
+    </aside>
+  </main>
+  <script>
+    const ALL = ["nfl","ncaaf","mlb","nba","nhl","mls"];
+    let selected = new Set(ALL);
+
+    const leaguesEl = document.getElementById("leagues");
+    ALL.forEach((league) => {
+      const chip = document.createElement("button");
+      chip.className = "chip active";
+      chip.textContent = league.toUpperCase();
+      chip.onclick = () => {
+        if (selected.has(league) && selected.size === 1) return;
+        if (selected.has(league)) selected.delete(league); else selected.add(league);
+        chip.classList.toggle("active");
+        load();
+      };
+      leaguesEl.appendChild(chip);
+    });
+
+    function cents(value) {
+      return value == null ? "—" : (value * 100).toFixed(0) + "¢";
+    }
+    function money(value) {
+      return "$" + Number(value || 0).toFixed(2);
+    }
+    function query() {
+      return [...selected].map((league) => "league=" + league).join("&");
+    }
+    function kickoff(value) {
+      if (!value) return "TBD";
+      return new Date(value).toLocaleString();
+    }
+
+    async function load() {
+      document.getElementById("meta").textContent = "Scanning Kalshi…";
+      document.getElementById("refresh").disabled = true;
+      try {
+        const [board, paper] = await Promise.all([
+          fetch("/api/board?" + query()).then((r) => r.json()),
+          fetch("/api/paper").then((r) => r.json()),
+        ]);
+        renderBoard(board);
+        renderSignals(board.signals || []);
+        renderPaper(paper);
+        document.getElementById("meta").textContent =
+          `${board.events.length} open games · ${board.signals.length} signals · paper mode`;
+      } catch (err) {
+        document.getElementById("meta").textContent = "Failed to load: " + err;
+      } finally {
+        document.getElementById("refresh").disabled = false;
+      }
+    }
+
+    function renderBoard(board) {
+      const root = document.getElementById("games");
+      root.innerHTML = "";
+      if (!board.events.length) {
+        root.innerHTML = "<div class='empty'>No open games for the selected leagues.</div>";
+        return;
+      }
+      board.events.forEach((event) => {
+        const card = document.createElement("article");
+        card.className = "game";
+        card.innerHTML = `
+          <div class="game-top">
+            <div>${event.league_label} · ${event.subtitle || event.event_ticker}</div>
+            <div>${kickoff(event.kickoff)}</div>
+          </div>
+          <div class="legs"></div>
+        `;
+        const legs = card.querySelector(".legs");
+        event.markets.forEach((market) => {
+          const row = document.createElement("div");
+          row.className = "leg";
+          row.innerHTML = `
+            <div class="team">${market.team}</div>
+            <div class="px bid">${cents(market.yes_bid)}</div>
+            <div class="px ask">${cents(market.yes_ask)}</div>
+            <div class="px">${market.american_display} · ${Math.round(market.volume || 0).toLocaleString()} vol</div>
+          `;
+          legs.appendChild(row);
+        });
+        root.appendChild(card);
+      });
+    }
+
+    function renderSignals(signals) {
+      const root = document.getElementById("signals");
+      root.innerHTML = "";
+      if (!signals.length) {
+        root.innerHTML = "<div class='empty'>No edges above the current thresholds.</div>";
+        return;
+      }
+      signals.forEach((signal) => {
+        const el = document.createElement("div");
+        el.className = "signal " + signal.kind;
+        el.innerHTML = `<div class="kind">${signal.kind} · ${(signal.edge * 100).toFixed(1)}%</div><div>${signal.summary}</div>`;
+        root.appendChild(el);
+      });
+    }
+
+    function renderPaper(paper) {
+      document.getElementById("status").innerHTML = `
+        <div class="stat"><b>${money(paper.cash)}</b><span>Cash</span></div>
+        <div class="stat"><b>${paper.open_positions}</b><span>Open events</span></div>
+        <div class="stat"><b>${money(paper.spent_today)}</b><span>Spent today</span></div>
+        <div class="stat"><b>${paper.kill_switch ? "ON" : "off"}</b><span>Kill switch</span></div>
+      `;
+      const fills = document.getElementById("fills");
+      fills.innerHTML = (paper.fills || []).slice(0, 8).map((fill) =>
+        `<div class="fill">${fill.side.toUpperCase()} ${fill.contracts} ${fill.ticker} @ ${fill.price} (${money(fill.notional)})</div>`
+      ).join("") || "<div class='empty'>No paper fills yet.</div>";
+    }
+
+    document.getElementById("refresh").onclick = load;
+    document.getElementById("trade").onclick = async () => {
+      document.getElementById("trade").disabled = true;
+      try {
+        const result = await fetch("/api/paper/trade?" + query(), { method: "POST" }).then((r) => r.json());
+        renderSignals(result.signals || []);
+        renderPaper(result.status);
+        document.getElementById("meta").textContent =
+          `Paper pass complete · ${result.fills.length} fills`;
+      } finally {
+        document.getElementById("trade").disabled = false;
+      }
+    };
+    load();
+    setInterval(load, 45000);
+  </script>
+</body>
+</html>
