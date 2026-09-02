@@ -71,3 +71,12 @@ def test_collect_includes_wide_spread_and_move():
     kinds = {signal.kind for signal in signals}
     assert "wide_spread" in kinds
     assert "price_move" in kinds
+
+
+def test_move_ignores_zero_previous_print():
+    from sportsbot.signals import move_signal
+
+    stale = market("A", 0.30, 0.45, "A")
+    stale = GameMarket(**{**stale.__dict__, "previous_price": 0.0, "last_price": 0.45})
+    game = event([stale])
+    assert move_signal(stale, game) is None

@@ -115,7 +115,7 @@ def wide_spread_signal(market: GameMarket, event: EventMarkets, wide_spread: flo
 
 
 def move_signal(market: GameMarket, event: EventMarkets, min_move: float = 0.04) -> Signal | None:
-    if market.last_price is None or market.previous_price is None:
+    if market.last_price is None or market.previous_price is None or market.previous_price <= 0:
         return None
     change = market.last_price - market.previous_price
     if abs(change) < min_move:
