@@ -23,13 +23,15 @@ dev = ["pytest>=8.0.0"]
 [project.scripts]
 sportsbot = "sportsbot.cli:main"
 v0-standings = "v0_standings_scanner.scanner:main"
+mlbkalshi = "mlbkalshi.cli:main"
 
 [tool.setuptools]
-packages = ["sportsbot", "v0_standings_scanner"]
+packages = ["sportsbot", "v0_standings_scanner", "mlbkalshi"]
 
 [tool.setuptools.package-dir]
 sportsbot = "sportsbot"
 v0_standings_scanner = "src/v0_standings_scanner"
+mlbkalshi = "src/mlbkalshi"
 
 [tool.setuptools.package-data]
 sportsbot = ["dashboard/static/*"]
