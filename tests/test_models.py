@@ -17,10 +17,10 @@ def test_american_odds():
 
 def sample_market(**overrides) -> GameMarket:
     payload = {
-        "ticker": "KXNFLGAME-26SEP09NESEA-SEA",
-        "event_ticker": "KXNFLGAME-26SEP09NESEA",
-        "yes_sub_title": "Seattle",
-        "title": "Seattle wins",
+        "ticker": "KXMLBGAME-26SEP02ATLWSH-ATL",
+        "event_ticker": "KXMLBGAME-26SEP02ATLWSH",
+        "yes_sub_title": "Atlanta",
+        "title": "Atlanta wins",
         "status": "active",
         "yes_bid_dollars": "0.6200",
         "yes_ask_dollars": "0.6300",
@@ -35,32 +35,32 @@ def sample_market(**overrides) -> GameMarket:
     }
     payload.update(overrides)
     event = {
-        "event_ticker": "KXNFLGAME-26SEP09NESEA",
-        "series_ticker": "KXNFLGAME",
-        "title": "New England vs Seattle",
-        "sub_title": "NE vs SEA (Sep 9)",
+        "event_ticker": "KXMLBGAME-26SEP02ATLWSH",
+        "series_ticker": "KXMLBGAME",
+        "title": "Atlanta vs Washington",
+        "sub_title": "ATL vs WSH (Sep 2)",
         "mutually_exclusive": True,
     }
-    return GameMarket.from_api(payload, event, "nfl", "NFL")
+    return GameMarket.from_api(payload, event, "mlb", "MLB")
 
 
 def test_market_mid_and_spread():
     market = sample_market()
     assert market.mid == 0.625
     assert market.spread == 0.01
-    assert market.team == "Seattle"
-    assert market.league == "nfl"
+    assert market.team == "Atlanta"
+    assert market.league == "mlb"
 
 
 def test_event_kickoff_uses_occurrence():
     market = sample_market()
     event = EventMarkets(
         event_ticker=market.event_ticker,
-        series_ticker="KXNFLGAME",
-        title="New England vs Seattle",
-        subtitle="NE vs SEA",
-        league="nfl",
-        league_label="NFL",
+        series_ticker="KXMLBGAME",
+        title="Atlanta vs Washington",
+        subtitle="ATL vs WSH",
+        league="mlb",
+        league_label="MLB",
         mutually_exclusive=True,
         occurrence=None,
         markets=[market],

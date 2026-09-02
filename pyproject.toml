@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "sportsbot"
 version = "0.1.0"
-description = "Kalshi sports betting bot — live board, signals, paper trading"
+description = "Kalshi MLB bot — live board, signals, paper trading"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{ name = "Matt Kubit" }]

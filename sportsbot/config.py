@@ -12,19 +12,12 @@ PRODUCTION_API = "https://external-api.kalshi.com/trade-api/v2"
 DEMO_API = "https://external-api.demo.kalshi.co/trade-api/v2"
 ODDS_API = "https://api.the-odds-api.com/v4"
 
-# Moneyline / game-winner series used for the board.
+# v1 is MLB moneyline only (KXMLBGAME). Other sports can be added later.
 LEAGUES: dict[str, dict[str, str]] = {
-    "nfl": {"series": "KXNFLGAME", "label": "NFL", "sport": "americanfootball_nfl"},
-    "ncaaf": {"series": "KXNCAAFGAME", "label": "NCAAF", "sport": "americanfootball_ncaaf"},
     "mlb": {"series": "KXMLBGAME", "label": "MLB", "sport": "baseball_mlb"},
-    "nba": {"series": "KXNBAGAME", "label": "NBA", "sport": "basketball_nba"},
-    "wnba": {"series": "KXWNBAGAME", "label": "WNBA", "sport": "basketball_wnba"},
-    "ncaab": {"series": "KXNCAABGAME", "label": "NCAAB", "sport": "basketball_ncaab"},
-    "nhl": {"series": "KXNHLGAME", "label": "NHL", "sport": "icehockey_nhl"},
-    "mls": {"series": "KXMLSGAME", "label": "MLS", "sport": "soccer_usa_mls"},
 }
 
-DEFAULT_LEAGUES = ("nfl", "ncaaf", "mlb", "nba", "nhl", "mls")
+DEFAULT_LEAGUES = ("mlb",)
 
 
 def _float_env(name: str, default: float) -> float:

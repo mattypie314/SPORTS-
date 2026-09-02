@@ -1,3 +1,3 @@
-"""Kalshi sports betting bot."""
+"""Kalshi MLB bot."""
 
 __version__ = "0.1.0"

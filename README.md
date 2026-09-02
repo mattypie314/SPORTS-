@@ -1,18 +1,20 @@
-# Kalshi Sports Bot
+# Kalshi MLB Bot
 
-Paper-first trading bot for [Kalshi](https://kalshi.com) sports markets. It pulls live NFL, NCAAF, MLB, NBA, NHL, and MLS game-winner contracts, prints a board, flags edges, and can paper-trade them. Real-money orders stay off unless you explicitly enable them.
+Paper-first [Kalshi](https://kalshi.com) bot for **MLB game winners only** (`KXMLBGAME`). It prints today’s moneylines, flags edges, and can paper-trade them. Real-money orders stay off unless you explicitly enable them.
+
+Other sports are out of scope for this first version.
 
 ## What it does
 
-- **Board** — live moneyline prices, implied American odds, and volume
+- **Board** — live MLB moneyline prices, implied American odds, and volume
 - **Signals**
-  - complementary arb (YES asks on a mutually exclusive game sum to less than $1)
+  - complementary arb (YES asks on both teams sum to less than $1)
   - complementary sell arb (YES bids sum to more than $1)
   - wide books
   - last-price moves
   - optional sportsbook value vs [The Odds API](https://the-odds-api.com)
 - **Paper book** — SQLite ledger, bankroll, daily cap, max positions
-- **Dashboard** — local sports terminal at `http://127.0.0.1:8000`
+- **Dashboard** — local MLB terminal at `http://127.0.0.1:8000`
 - **Live** — Kalshi RSA-signed orders, demo by default, requires env flags plus `--confirm-live`
 
 Market data always comes from Kalshi production (`https://external-api.kalshi.com/trade-api/v2`). No API key is needed to scan.
@@ -28,8 +30,8 @@ pip install -e ".[dev]"
 ## Use
 
 ```bash
-# Live board + signals (no credentials)
-sportsbot scan --league nfl --league mlb
+# Live MLB board + signals (no credentials)
+sportsbot scan
 
 # JSON for scripts
 sportsbot scan --json
@@ -60,7 +62,7 @@ Create `data/KILL` to halt new paper (and live) entries.
 
 ### Optional sportsbook comparison
 
-Set `ODDS_API_KEY` and rescan. The bot vig-frees the first US bookmaker h2h quote and flags Kalshi asks cheaper than that fair probability.
+Set `ODDS_API_KEY` and rescan. The bot vig-frees the first US bookmaker MLB h2h quote and flags Kalshi asks cheaper than that fair probability.
 
 ### Live trading (off by default)
 
@@ -70,8 +72,8 @@ Set `ODDS_API_KEY` and rescan. The bot vig-frees the first US bookmaker h2h quot
 4. Dry-run, then confirm:
 
 ```bash
-sportsbot live --league nfl --dry-run
-sportsbot live --league nfl --confirm-live
+sportsbot live --dry-run
+sportsbot live --confirm-live
 ```
 
 Live mode only sends IOC bids for `arb_buy` and `sportsbook_value`. Prediction-market trading can lose money. This is not financial advice.
@@ -84,6 +86,5 @@ pytest
 
 ## API used
 
-- `GET /series?category=Sports`
-- `GET /events?series_ticker=KXNFLGAME&status=open&with_nested_markets=true`
+- `GET /events?series_ticker=KXMLBGAME&status=open&with_nested_markets=true`
 - `POST /portfolio/events/orders` (live only)

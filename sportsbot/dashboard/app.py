@@ -3,11 +3,11 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from sportsbot.config import LEAGUES, Settings
+from sportsbot.config import Settings
 from sportsbot.paper import PaperBook
 from sportsbot.service import scan_board, serialize_board
 
@@ -21,16 +21,16 @@ def _settings_from_env() -> Settings:
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or _settings_from_env()
-    app = FastAPI(title="Kalshi Sports Bot", version="0.1.0")
+    app = FastAPI(title="Kalshi MLB Bot", version="0.1.0")
     book = PaperBook(settings)
 
     @app.get("/api/health")
     def health() -> dict:
-        return {"ok": True, "mode": "paper", "leagues": list(LEAGUES)}
+        return {"ok": True, "mode": "paper", "league": "mlb"}
 
     @app.get("/api/board")
-    def board(league: list[str] | None = Query(default=None)) -> dict:
-        events, signals = scan_board(settings, league or None)
+    def board() -> dict:
+        events, signals = scan_board(settings)
         return serialize_board(events, signals)
 
     @app.get("/api/paper")
@@ -38,8 +38,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return book.status()
 
     @app.post("/api/paper/trade")
-    def paper_trade(league: list[str] | None = Query(default=None)) -> dict:
-        events, signals = scan_board(settings, league or None)
+    def paper_trade() -> dict:
+        events, signals = scan_board(settings)
         actionable = [signal for signal in signals if signal.kind in {"arb_buy", "arb_sell", "sportsbook_value"}]
         fills = book.execute_actionable(actionable, events)
         return {

@@ -3,10 +3,10 @@ from sportsbot.scanner import event_from_api
 
 def test_event_from_api_skips_inactive():
     raw = {
-        "event_ticker": "KXNFLGAME-1",
-        "series_ticker": "KXNFLGAME",
-        "title": "NE vs SEA",
-        "sub_title": "NE vs SEA",
+        "event_ticker": "KXMLBGAME-1",
+        "series_ticker": "KXMLBGAME",
+        "title": "ATL vs WSH",
+        "sub_title": "ATL vs WSH",
         "mutually_exclusive": True,
         "markets": [
             {
@@ -31,7 +31,7 @@ def test_event_from_api_skips_inactive():
             },
         ],
     }
-    event = event_from_api(raw, "nfl")
+    event = event_from_api(raw, "mlb")
     assert event is not None
     assert len(event.markets) == 1
     assert event.markets[0].team == "B"
@@ -40,8 +40,8 @@ def test_event_from_api_skips_inactive():
 def test_event_from_api_empty_when_no_active():
     raw = {
         "event_ticker": "X",
-        "series_ticker": "KXNFLGAME",
+        "series_ticker": "KXMLBGAME",
         "title": "Gone",
         "markets": [{"ticker": "A", "status": "settled", "title": "A"}],
     }
-    assert event_from_api(raw, "nfl") is None
+    assert event_from_api(raw, "mlb") is None
