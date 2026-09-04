@@ -12,9 +12,11 @@ def test_health_and_index(tmp_path: Path):
     health = client.get("/api/health")
     assert health.status_code == 200
     assert health.json()["ok"] is True
+    assert health.json()["league"] == "mlb"
     page = client.get("/")
     assert page.status_code == 200
-    assert "Kalshi Sports Bot" in page.text
+    assert "Kalshi MLB Bot" in page.text
+    assert "NFL" not in page.text
 
 
 def test_paper_status(tmp_path: Path):

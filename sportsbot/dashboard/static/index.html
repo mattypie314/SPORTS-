@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Kalshi Sports Bot</title>
+  <title>Kalshi MLB Bot</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23f5c14a'/%3E%3C/svg%3E" />
   <style>
     :root {
@@ -62,8 +62,8 @@
 <body>
   <header>
     <div>
-      <h1>Kalshi <span>Sports Bot</span></h1>
-      <div class="meta" id="meta">Loading live board…</div>
+      <h1>Kalshi <span>MLB Bot</span></h1>
+      <div class="meta" id="meta">Loading MLB board…</div>
     </div>
     <div class="actions">
       <button id="refresh">Refresh</button>
@@ -72,8 +72,7 @@
   </header>
   <main>
     <section class="panel">
-      <h2>Board</h2>
-      <div class="actions" id="leagues" style="margin-bottom:14px"></div>
+      <h2>MLB moneylines</h2>
       <div class="games" id="games"></div>
     </section>
     <aside>
@@ -89,31 +88,11 @@
     </aside>
   </main>
   <script>
-    const ALL = ["nfl","ncaaf","mlb","nba","nhl","mls"];
-    let selected = new Set(ALL);
-
-    const leaguesEl = document.getElementById("leagues");
-    ALL.forEach((league) => {
-      const chip = document.createElement("button");
-      chip.className = "chip active";
-      chip.textContent = league.toUpperCase();
-      chip.onclick = () => {
-        if (selected.has(league) && selected.size === 1) return;
-        if (selected.has(league)) selected.delete(league); else selected.add(league);
-        chip.classList.toggle("active");
-        load();
-      };
-      leaguesEl.appendChild(chip);
-    });
-
     function cents(value) {
       return value == null ? "—" : (value * 100).toFixed(0) + "¢";
     }
     function money(value) {
       return "$" + Number(value || 0).toFixed(2);
-    }
-    function query() {
-      return [...selected].map((league) => "league=" + league).join("&");
     }
     function kickoff(value) {
       if (!value) return "TBD";
@@ -121,18 +100,18 @@
     }
 
     async function load() {
-      document.getElementById("meta").textContent = "Scanning Kalshi…";
+      document.getElementById("meta").textContent = "Scanning Kalshi MLB…";
       document.getElementById("refresh").disabled = true;
       try {
         const [board, paper] = await Promise.all([
-          fetch("/api/board?" + query()).then((r) => r.json()),
+          fetch("/api/board").then((r) => r.json()),
           fetch("/api/paper").then((r) => r.json()),
         ]);
         renderBoard(board);
         renderSignals(board.signals || []);
         renderPaper(paper);
         document.getElementById("meta").textContent =
-          `${board.events.length} open games · ${board.signals.length} signals · paper mode`;
+          `${board.events.length} MLB games · ${board.signals.length} signals · paper mode`;
       } catch (err) {
         document.getElementById("meta").textContent = "Failed to load: " + err;
       } finally {
@@ -144,7 +123,7 @@
       const root = document.getElementById("games");
       root.innerHTML = "";
       if (!board.events.length) {
-        root.innerHTML = "<div class='empty'>No open games for the selected leagues.</div>";
+        root.innerHTML = "<div class='empty'>No open MLB games.</div>";
         return;
       }
       board.events.forEach((event) => {
@@ -205,7 +184,7 @@
     document.getElementById("trade").onclick = async () => {
       document.getElementById("trade").disabled = true;
       try {
-        const result = await fetch("/api/paper/trade?" + query(), { method: "POST" }).then((r) => r.json());
+        const result = await fetch("/api/paper/trade", { method: "POST" }).then((r) => r.json());
         renderSignals(result.signals || []);
         renderPaper(result.status);
         document.getElementById("meta").textContent =

@@ -6,7 +6,7 @@ import sys
 import time
 from typing import Sequence
 
-from sportsbot.config import LEAGUES, Settings
+from sportsbot.config import Settings
 from sportsbot.kalshi.models import EventMarkets, format_american
 from sportsbot.live import LiveTradingDisabled, place_signal_orders, require_live
 from sportsbot.paper import PaperBook
@@ -18,16 +18,16 @@ def _settings() -> Settings:
     return Settings()
 
 
-def _scan(settings: Settings, leagues: list[str] | None) -> tuple[list[EventMarkets], list[Signal]]:
-    return scan_board(settings, leagues)
+def _scan(settings: Settings) -> tuple[list[EventMarkets], list[Signal]]:
+    return scan_board(settings)
 
 
 def _print_board(events: list[EventMarkets]) -> None:
     if not events:
-        print("No open sports games found.")
+        print("No open MLB games found.")
         return
-    print(f"{'LEAGUE':<8} {'KICKOFF':<22} {'GAME':<42} {'TEAM':<22} {'BID':>6} {'ASK':>6} {'MID':>6} {'AMER':>7} {'VOL':>10}")
-    print("-" * 140)
+    print(f"{'KICKOFF':<22} {'GAME':<42} {'TEAM':<22} {'BID':>6} {'ASK':>6} {'MID':>6} {'AMER':>7} {'VOL':>10}")
+    print("-" * 130)
     for event in events:
         kickoff = event.kickoff.strftime("%Y-%m-%d %H:%M") if event.kickoff else "—"
         for market in event.markets:
@@ -35,7 +35,7 @@ def _print_board(events: list[EventMarkets]) -> None:
             bid = f"{market.yes_bid:.2f}" if market.yes_bid is not None else "—"
             ask = f"{market.yes_ask:.2f}" if market.yes_ask is not None else "—"
             print(
-                f"{event.league_label:<8} {kickoff:<22} {event.title[:42]:<42} "
+                f"{kickoff:<22} {event.title[:42]:<42} "
                 f"{market.team[:22]:<22} {bid:>6} {ask:>6} {mid:>6} "
                 f"{format_american(market.american):>7} {market.volume:>10.0f}"
             )
@@ -45,19 +45,19 @@ def _print_signals(signals: list[Signal]) -> None:
     if not signals:
         print("No signals above the current thresholds.")
         return
-    print(f"{'KIND':<18} {'EDGE':>7} {'LEAGUE':<8} SUMMARY")
-    print("-" * 120)
+    print(f"{'KIND':<18} {'EDGE':>7} SUMMARY")
+    print("-" * 110)
     for signal in signals:
-        print(f"{signal.kind:<18} {signal.edge:>6.1%} {signal.league_label:<8} {signal.summary}")
+        print(f"{signal.kind:<18} {signal.edge:>6.1%} {signal.summary}")
 
 
 def cmd_scan(args: argparse.Namespace) -> int:
     settings = _settings()
-    events, signals = _scan(settings, args.league)
+    events, signals = _scan(settings)
     if args.json:
         print(json.dumps({"events": [event.to_dict() for event in events], "signals": [s.to_dict() for s in signals]}, indent=2))
         return 0
-    print(f"Open games: {len(events)}")
+    print(f"Open MLB games: {len(events)}")
     _print_board(events)
     print()
     print(f"Signals: {len(signals)}")
@@ -67,7 +67,7 @@ def cmd_scan(args: argparse.Namespace) -> int:
 
 def cmd_signals(args: argparse.Namespace) -> int:
     settings = _settings()
-    _, signals = _scan(settings, args.league)
+    _, signals = _scan(settings)
     if args.json:
         print(json.dumps([signal.to_dict() for signal in signals], indent=2))
         return 0
@@ -81,7 +81,7 @@ def cmd_paper(args: argparse.Namespace) -> int:
     if args.status:
         print(json.dumps(book.status(), indent=2) if args.json else _format_status(book.status()))
         return 0
-    events, signals = _scan(settings, args.league)
+    events, signals = _scan(settings)
     actionable = [signal for signal in signals if signal.kind in {"arb_buy", "arb_sell", "sportsbook_value"}]
     fills = book.execute_actionable(actionable, events)
     payload = {
@@ -109,9 +109,9 @@ def cmd_watch(args: argparse.Namespace) -> int:
     settings = _settings()
     book = PaperBook(settings) if args.paper else None
     while True:
-        events, signals = _scan(settings, args.league)
+        events, signals = _scan(settings)
         stamp = time.strftime("%Y-%m-%d %H:%M:%S")
-        print(f"\n[{stamp}] {len(events)} games, {len(signals)} signals")
+        print(f"\n[{stamp}] {len(events)} MLB games, {len(signals)} signals")
         _print_signals(signals)
         if book is not None:
             fills = book.execute_actionable(
@@ -146,7 +146,7 @@ def cmd_live(args: argparse.Namespace) -> int:
     if not args.confirm_live:
         print("Refusing to send live orders without --confirm-live.", file=sys.stderr)
         return 2
-    events, signals = _scan(settings, args.league)
+    events, signals = _scan(settings)
     actionable = [signal for signal in signals if signal.kind in {"arb_buy", "sportsbook_value"}]
     if args.dry_run:
         print(json.dumps([signal.to_dict() for signal in actionable], indent=2))
@@ -170,50 +170,44 @@ def _format_status(status: dict) -> str:
     return "\n".join(lines)
 
 
-def _add_league_flag(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument(
-        "--league",
-        action="append",
-        choices=sorted(LEAGUES),
-        help="Repeat to scan specific leagues. Default: nfl ncaaf mlb nba nhl mls",
-    )
+def _add_json_flag(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--json", action="store_true", help="Print JSON instead of a table")
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="sportsbot",
-        description="Kalshi sports bot: scan games, find edges, paper-trade by default.",
+        description="Kalshi MLB bot: scan game winners, find edges, paper-trade by default.",
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
-    scan = sub.add_parser("scan", help="Show the live sports board and signals")
-    _add_league_flag(scan)
+    scan = sub.add_parser("scan", help="Show the live MLB board and signals")
+    _add_json_flag(scan)
     scan.set_defaults(func=cmd_scan)
 
     signals = sub.add_parser("signals", help="Show only signals")
-    _add_league_flag(signals)
+    _add_json_flag(signals)
     signals.set_defaults(func=cmd_signals)
 
-    paper = sub.add_parser("paper", help="Scan and paper-trade actionable signals")
-    _add_league_flag(paper)
+    paper = sub.add_parser("paper", help="Scan and paper-trade actionable MLB signals")
+    _add_json_flag(paper)
     paper.add_argument("--status", action="store_true", help="Print the paper book and exit")
     paper.set_defaults(func=cmd_paper)
 
-    watch = sub.add_parser("watch", help="Rescan on an interval")
-    _add_league_flag(watch)
+    watch = sub.add_parser("watch", help="Rescan MLB on an interval")
+    _add_json_flag(watch)
     watch.add_argument("--interval", type=int, default=60, help="Seconds between scans")
     watch.add_argument("--paper", action="store_true", help="Paper-trade each pass")
     watch.add_argument("--once", action="store_true", help="Run a single pass")
     watch.set_defaults(func=cmd_watch)
 
-    dash = sub.add_parser("dashboard", help="Open the local sports terminal")
+    dash = sub.add_parser("dashboard", help="Open the local MLB terminal")
     dash.add_argument("--host", default="127.0.0.1")
     dash.add_argument("--port", type=int, default=8000)
     dash.set_defaults(func=cmd_dashboard)
 
     live = sub.add_parser("live", help="Send real Kalshi orders (disabled unless env flags are set)")
-    _add_league_flag(live)
+    _add_json_flag(live)
     live.add_argument("--confirm-live", action="store_true", help="Required to actually send orders")
     live.add_argument("--dry-run", action="store_true", help="Print would-be live orders only")
     live.set_defaults(func=cmd_live)

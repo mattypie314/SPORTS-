@@ -29,11 +29,11 @@ def arb_event() -> EventMarkets:
         return GameMarket(
             ticker=team,
             event_ticker="EVT",
-            series_ticker="KXNFLGAME",
+            series_ticker="KXMLBGAME",
             event_title="A vs B",
             event_subtitle="A vs B",
-            league="nfl",
-            league_label="NFL",
+            league="mlb",
+            league_label="MLB",
             team=team,
             title=f"{team} wins",
             status="active",
@@ -52,11 +52,11 @@ def arb_event() -> EventMarkets:
 
     return EventMarkets(
         event_ticker="EVT",
-        series_ticker="KXNFLGAME",
+        series_ticker="KXMLBGAME",
         title="A vs B",
         subtitle="A vs B",
-        league="nfl",
-        league_label="NFL",
+        league="mlb",
+        league_label="MLB",
         mutually_exclusive=True,
         occurrence=datetime(2026, 9, 9, tzinfo=timezone.utc),
         markets=[mkt("A", 0.40, 0.41), mkt("B", 0.55, 0.56)],
@@ -92,8 +92,8 @@ def test_paper_ignores_wide_spread(tmp_path: Path):
 
     signal = Signal(
         kind="wide_spread",
-        league="nfl",
-        league_label="NFL",
+        league="mlb",
+        league_label="MLB",
         event_ticker="EVT",
         title="A vs B",
         subtitle="A",
