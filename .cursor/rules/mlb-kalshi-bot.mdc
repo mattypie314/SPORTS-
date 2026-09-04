@@ -1,0 +1,20 @@
+---
+description: mlbkalshi production rules — EV gates, books-first fair value, paper default
+globs: src/mlbkalshi/**/*.py,src/v0_standings_scanner/**/*.py,scripts/**/*.py,tests/**/*.py
+alwaysApply: true
+---
+
+# mlbkalshi rules
+
+Follow `AGENTS.md` and `docs/ARCHITECTURE.md`. Do not invent alpha on top of sportsbook consensus.
+
+- Recommend only when net EV after fees ≥ 6% (4% only if books disagree ≤ 2 pts and Kalshi spread is 1–2¢).
+- Fair value is no-vig sharp consensus. Standings/pythag/ERA is `model_fair` / `low_confidence` only.
+- Prefer maker/limit. Taker fee = 0.07 * p * (1-p). Maker fee = 0.0175 * p * (1-p).
+- Kelly 0.25–0.35× (default 0.30). Risk cap 5–8% of bankroll (default 6%). Bankroll $100, or $35 if SMALL_BANKROLL=1.
+- If nothing passes, print `No actionable edge` plus closest misses. Never force a bet.
+- Live Kalshi orders require LIVE_TRADING=1 and keys. Default paper.
+- Settlement = Kalshi contract language, not sportsbook voids. Playoff games that may not be played resolve to last fair price.
+- No revenge trading. No averaging into a live 9-inning game.
+- Skip 80¢+ favorites and 15¢ longshots unless net EV ≥ 10% and the book is deep.
+- Never log private keys. Never treat this as financial advice.
